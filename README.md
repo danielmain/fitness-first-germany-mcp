@@ -42,23 +42,62 @@ uv run fitness-first-germany-mcp
 
 This repository works natively with [Hermes Agent](https://hermes-agent.nousresearch.com) both as an MCP server and as a procedural skill ([`agentskills.io`](https://agentskills.io) format).
 
-1. Add the MCP server to `~/.hermes/config.yaml`:
+#### 1. Link or install the Skill
 
-```yaml
-mcp_servers:
-  fitness-first-germany:
-    command: "uv"
-    args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
-    env:
-      FITNESS_FIRST_EMAIL: "you@example.com"
-      FITNESS_FIRST_PASSWORD: "your-password"
-```
-
-2. Link or copy the bundled skill to your Hermes skills directory:
+Link the bundled skill to your Hermes skills directory:
 
 ```bash
 mkdir -p ~/.hermes/skills
 ln -s "$(pwd)/skills/fitness-first-germany" ~/.hermes/skills/fitness-first-germany
+```
+
+*(Alternatively, add this repository's `skills/` path to `skills.external_dirs` in `~/.hermes/config.yaml`)*.
+
+#### 2. Choose how to configure your credentials
+
+You have three options to provide your Fitness First credentials:
+
+- **Option A: Via Hermes CLI (Recommended)**
+  Hermes automatically saves `UPPER_SNAKE_CASE` environment variables into `~/.hermes/.env`:
+  ```bash
+  hermes config set FITNESS_FIRST_EMAIL "you@example.com"
+  hermes config set FITNESS_FIRST_PASSWORD "your-password"
+  ```
+  Then in `~/.hermes/config.yaml`, reference them using `${VAR}`:
+  ```yaml
+  mcp_servers:
+    fitness-first-germany:
+      command: "uv"
+      args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
+      env:
+        FITNESS_FIRST_EMAIL: ${FITNESS_FIRST_EMAIL}
+        FITNESS_FIRST_PASSWORD: ${FITNESS_FIRST_PASSWORD}
+  ```
+
+- **Option B: Directly in `~/.hermes/config.yaml`**
+  ```yaml
+  mcp_servers:
+    fitness-first-germany:
+      command: "uv"
+      args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
+      env:
+        FITNESS_FIRST_EMAIL: "you@example.com"
+        FITNESS_FIRST_PASSWORD: "your-password"
+  ```
+
+- **Option C: In the local repository `.env`**
+  Create `.env` in the repository root:
+  ```bash
+  cp .env.example .env
+  # edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
+  ```
+  The server loads `.env` automatically via `python-dotenv` when launched.
+
+#### Quick Setup Script
+
+You can also run the interactive setup helper:
+```bash
+./skills/fitness-first-germany/scripts/setup.sh
 ```
 
 Now you can invoke `/fitness-first` or ask Hermes naturally about upcoming classes, check-ins, or EGYM BioAge metrics.

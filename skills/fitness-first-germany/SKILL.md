@@ -5,6 +5,10 @@ version: 1.0.0
 metadata:
   hermes:
     tags: [fitness, gym, booking, mcp, egym]
+prerequisites:
+  env:
+    - FITNESS_FIRST_EMAIL
+    - FITNESS_FIRST_PASSWORD
 ---
 
 # Fitness First Germany
@@ -19,8 +23,48 @@ Activate this skill when the user wants to:
 - Check club leaderboards, personal rank, or EGYM activity points.
 - View BioAge, weight, BMI, body fat, or metabolic measurements.
 - Inspect or update profile settings and home club.
+- Configure or troubleshoot Fitness First credentials in Hermes.
 
 Command: `/fitness-first <instruction>`
+
+---
+
+## Prerequisites & Credential Configuration
+
+This skill requires the `fitness-first-germany` MCP server running with valid credentials.
+
+### If credentials or tools are missing:
+If tools (`ff_*`) are not available or return `Set FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD before starting the server`, guide the user with these 3 options:
+
+1. **Hermes CLI (Recommended):**
+   ```bash
+   hermes config set FITNESS_FIRST_EMAIL "you@example.com"
+   hermes config set FITNESS_FIRST_PASSWORD "your-password"
+   ```
+   *(Hermes stores UPPER_CASE variables directly in `~/.hermes/.env`)*.
+
+2. **Hermes MCP config (`~/.hermes/config.yaml`):**
+   ```yaml
+   mcp_servers:
+     fitness-first-germany:
+       command: "uv"
+       args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
+       env:
+         FITNESS_FIRST_EMAIL: ${FITNESS_FIRST_EMAIL}
+         FITNESS_FIRST_PASSWORD: ${FITNESS_FIRST_PASSWORD}
+   ```
+
+3. **Local repository `.env`:**
+   In the cloned repository directory:
+   ```bash
+   cp .env.example .env
+   # Edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
+   ```
+
+You can also run the bundled interactive setup script:
+```bash
+./scripts/setup.sh
+```
 
 ---
 
