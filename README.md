@@ -1,4 +1,8 @@
-# Fitness First Germany MCP
+<p align="center">
+  <img src="assets/banner.png" alt="Fitness First Germany - Hermes Agent Skill & MCP Server" width="100%">
+</p>
+
+# Fitness First Germany MCP & Hermes Skill
 
 MCP server for a Fitness First Germany membership on the Netpulse brand API (`https://fitnessfirst.netpulse.com`).
 
