@@ -32,7 +32,7 @@ uv run fitness-first-germany-mcp
   "mcpServers": {
     "fitness-first-germany": {
       "command": "uv",
-      "args": ["run", "--directory", "/Users/daniel/Workspace/mcp/fitness-first-germany-mcp", "fitness-first-germany-mcp"],
+      "args": ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"],
       "env": {
         "FITNESS_FIRST_EMAIL": "you@example.com",
         "FITNESS_FIRST_PASSWORD": "your-password"
