@@ -22,7 +22,7 @@ def get_client() -> FitnessFirstClient:
 def cmd_auth_save(args: argparse.Namespace) -> int:
     client = FitnessFirstClient(args.email, args.password)
     try:
-        session = client._ensure_session()
+        session = client.login()
         save_auth_config(args.email, args.password)
         info = {
             "status": "success",
@@ -45,14 +45,15 @@ def cmd_auth_save(args: argparse.Namespace) -> int:
 def cmd_auth_status(args: argparse.Namespace) -> int:
     try:
         client = get_client()
-        session = client._ensure_session()
+        client._ensure_session()
+        session = client._session
         info = {
             "authenticated": True,
-            "name": session.get("name"),
-            "email": session.get("email"),
-            "uuid": session.get("uuid"),
-            "home_club": session.get("homeClubName"),
-            "home_club_uuid": session.get("homeClubUuid"),
+            "name": session.get("name") if session else None,
+            "email": session.get("email") if session else None,
+            "uuid": session.get("uuid") if session else None,
+            "home_club": session.get("homeClubName") if session else None,
+            "home_club_uuid": session.get("homeClubUuid") if session else None,
         }
         print(json.dumps(info, indent=2))
         return 0
@@ -63,21 +64,21 @@ def cmd_auth_status(args: argparse.Namespace) -> int:
 
 def cmd_classes(args: argparse.Namespace) -> int:
     client = get_client()
-    classes = client.get_upcoming_classes(days=args.days, club_name=args.club)
+    classes = client.upcoming_classes(days=args.days, club_name=args.club)
     print(json.dumps(classes, indent=2))
     return 0
 
 
 def cmd_class_details(args: argparse.Namespace) -> int:
     client = get_client()
-    details = client.get_class_details(args.class_id)
+    details = client.class_details(args.class_id)
     print(json.dumps(details, indent=2))
     return 0
 
 
 def cmd_schedule(args: argparse.Namespace) -> int:
     client = get_client()
-    schedule = client.get_my_schedule(days=args.days)
+    schedule = client.my_schedule(days=args.days)
     print(json.dumps(schedule, indent=2))
     return 0
 
@@ -136,63 +137,63 @@ def cmd_waitlist_leave(args: argparse.Namespace) -> int:
 
 def cmd_check_ins(args: argparse.Namespace) -> int:
     client = get_client()
-    visits = client.get_check_in_history(limit=args.limit)
+    visits = client.check_ins(limit=args.limit)
     print(json.dumps(visits, indent=2))
     return 0
 
 
 def cmd_latest_check_in(args: argparse.Namespace) -> int:
     client = get_client()
-    latest = client.get_latest_check_in()
+    latest = client.latest_check_in()
     print(json.dumps(latest, indent=2))
     return 0
 
 
 def cmd_bioage(args: argparse.Namespace) -> int:
     client = get_client()
-    bioage = client.get_bioage()
+    bioage = client.body_measurements()
     print(json.dumps(bioage, indent=2))
     return 0
 
 
 def cmd_activity(args: argparse.Namespace) -> int:
     client = get_client()
-    activity = client.get_activity_levels()
+    activity = client.activity_level()
     print(json.dumps(activity, indent=2))
     return 0
 
 
 def cmd_ranking(args: argparse.Namespace) -> int:
     client = get_client()
-    ranking = client.get_ranking()
+    ranking = client.ranking()
     print(json.dumps(ranking, indent=2))
     return 0
 
 
 def cmd_leaderboard(args: argparse.Namespace) -> int:
     client = get_client()
-    lb = client.get_leaderboard(limit=args.limit)
+    lb = client.leaderboard(size=args.limit)
     print(json.dumps(lb, indent=2))
     return 0
 
 
 def cmd_member_info(args: argparse.Namespace) -> int:
     client = get_client()
-    info = client.get_member_info(args.uuid)
+    info = client.member_info(args.uuid)
     print(json.dumps(info, indent=2))
     return 0
 
 
 def cmd_profile(args: argparse.Namespace) -> int:
     client = get_client()
-    profile = client.get_profile()
+    profile = client.profile()
     print(json.dumps(profile, indent=2))
     return 0
 
 
 def cmd_active_trainers(args: argparse.Namespace) -> int:
     client = get_client()
-    res = client.get_active_trainers(limit=args.limit, reset_cache=args.reset_cache)
+    res = client.active_trainers(limit=args.limit, reset_cache=args.reset_cache)
     print(json.dumps(res, indent=2))
     return 0
 

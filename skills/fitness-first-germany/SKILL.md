@@ -80,8 +80,10 @@ Always present class title, instructor, date, and start time to the user, and as
 | Latest Check-in | `python3 scripts/ff_cli.py latest-check-in` | `ff_latest_check_in` |
 | EGYM BioAge & Body | `python3 scripts/ff_cli.py bioage` | `ff_body_measurements` |
 | EGYM Activity Points | `python3 scripts/ff_cli.py activity` | `ff_activity_level` |
+| Personal Ranking | `python3 scripts/ff_cli.py ranking` | `ff_ranking` |
 | Club Leaderboard | `python3 scripts/ff_cli.py leaderboard --limit 50` | `ff_leaderboard` |
 | Member Profile Info | `python3 scripts/ff_cli.py member-info <uuid>` | `ff_member_info` |
+| Exerciser Profile | `python3 scripts/ff_cli.py profile` | `ff_profile` |
 | Active Trainers Delta | `python3 scripts/ff_cli.py active-trainers` | `ff_active_trainers` |
 
 ## How to Run
