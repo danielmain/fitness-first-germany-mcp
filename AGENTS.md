@@ -14,6 +14,7 @@ The Fitness First Germany mobile app (`com.netpulse.mobile.fitnessfirst`) is pow
 - **Brand Host**: `https://fitnessfirst.netpulse.com`
 - **Global Netpulse Host**: `https://api.netpulse.com` *(Note: European brand memberships authenticate against the brand-specific host, not the global host).*
 - **Authentication**: Stateful session cookie (`JSESSIONID`) acquired via form-encoded credentials at `POST /np/exerciser/login`.
+  - *Session Expiry & Access Denied*: When the `JSESSIONID` expires (typically after 15–30 minutes of inactivity), Netpulse's Spring Security layer responds with `403: Access is denied` (rather than standard 401). The MCP client intercepts both `401` and `403` status codes, automatically clears invalid session cookies, executes a fresh login, and transparently retries the request once before escalating any genuine authorization failure.
 - **Required Request Headers**:
   - `User-Agent`: `okhttp/4.12.0` (or `okhttp/3.12.3`)
   - `Accept`: `application/json`
@@ -126,7 +127,9 @@ Since there is no public "who is currently checked in" or "turnstile checkout" e
 
 ### CLI Activity Stream (`tail -f`) & Mattermost Integration
 The CLI tool `scripts/tail_members.py` (or `uv run fitness-first-tail`) streams member events in real-time and supports optional Mattermost notifications:
-- Continuous polling loop with configurable interval (`-i`).
+- Continuous polling loop defaulting to 60s (configurable via `-i`/`--interval` or `FITNESS_FIRST_POLL_INTERVAL`).
+- Exponential error backoff on transient network drops or API errors (60s -> 120s -> 240s -> max 300s) to prevent spamming the backend.
+- Automatic re-authentication on 401/403 session expiration so long-running streams continue uninterrupted.
 - Terminal styling with ANSI colors and formatted metadata cards.
 - Optional newline-delimited JSON (`--json`) output.
 - Mattermost incoming webhook (`--mattermost-webhook` / `MATTERMOST_WEBHOOK_URL`) or REST API token forwarding with two-column attachments and CDN avatars.

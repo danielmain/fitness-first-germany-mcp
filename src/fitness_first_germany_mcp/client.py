@@ -776,8 +776,9 @@ class FitnessFirstClient:
                     raw = response.read()
         except urllib.error.HTTPError as error:
             detail = _error_message(error)
-            if error.code == 401 and retry and path != "/np/exerciser/login":
+            if error.code in (401, 403) and retry and path != "/np/exerciser/login":
                 self._session = None
+                self._cookies.clear()
                 self.login()
                 return self._request(method, path, form, retry=False, authenticated=False)
             raise FitnessFirstError(detail, error.code) from error

@@ -121,3 +121,20 @@ def test_mattermost_notifier_api_token():
         assert url == "https://mattermost.funktional.dev/api/v4/posts"
         assert payload["channel_id"] == "aised4nnkbnoug1h4khytwqbce"
         assert headers == {"Authorization": "Bearer token-xyz"}
+
+
+def test_member_tailer_default_interval():
+    mock_client = MagicMock()
+    mock_client.timezone = "Europe/Berlin"
+    mock_client.home_club_uuid = "club-1"
+    tailer = MemberTailer(client=mock_client)
+    assert tailer.poll_interval == 60.0
+
+
+def test_member_tailer_custom_interval():
+    mock_client = MagicMock()
+    mock_client.timezone = "Europe/Berlin"
+    mock_client.home_club_uuid = "club-1"
+    tailer = MemberTailer(client=mock_client, poll_interval=120.0)
+    assert tailer.poll_interval == 120.0
+

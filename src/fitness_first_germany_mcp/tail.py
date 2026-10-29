@@ -227,7 +227,7 @@ class MemberTailer:
         self,
         client: FitnessFirstClient,
         cache_path: str | None = None,
-        poll_interval: float = 20.0,
+        poll_interval: float = 60.0,
         json_output: bool = False,
         notifier: MattermostNotifier | None = None,
     ):
@@ -425,10 +425,17 @@ class MemberTailer:
                 return
 
         # Continuous tail loop
+        consecutive_errors = 0
         while True:
+            sleep_time = (
+                self.poll_interval
+                if consecutive_errors == 0
+                else min(300.0, max(self.poll_interval, 30.0) * (2 ** min(consecutive_errors - 1, 4)))
+            )
             try:
-                time.sleep(self.poll_interval)
+                time.sleep(sleep_time)
                 events = self.poll_once()
+                consecutive_errors = 0
                 for ev in events:
                     if self.json_output:
                         print(json.dumps(ev, ensure_ascii=False), flush=True)
@@ -439,15 +446,28 @@ class MemberTailer:
                     print(f"\n{YELLOW}Tail interrupted by user. Stopping.{RESET}")
                 break
             except FitnessFirstError as err:
+                consecutive_errors += 1
+                next_delay = int(min(300.0, max(self.poll_interval, 30.0) * (2 ** min(consecutive_errors - 1, 4))))
                 if not self.json_output:
-                    print(f"{DIM}[{datetime.now().strftime('%H:%M:%S')}]{RESET} {YELLOW}API error (retrying): {err}{RESET}", file=sys.stderr)
+                    print(
+                        f"{DIM}[{datetime.now().strftime('%H:%M:%S')}]{RESET} {YELLOW}API error (retrying in {next_delay}s): {err}{RESET}",
+                        file=sys.stderr,
+                    )
             except Exception as err:
+                consecutive_errors += 1
+                next_delay = int(min(300.0, max(self.poll_interval, 30.0) * (2 ** min(consecutive_errors - 1, 4))))
                 if not self.json_output:
-                    print(f"{DIM}[{datetime.now().strftime('%H:%M:%S')}]{RESET} {YELLOW}Unexpected error (retrying): {err}{RESET}", file=sys.stderr)
+                    print(
+                        f"{DIM}[{datetime.now().strftime('%H:%M:%S')}]{RESET} {YELLOW}Unexpected error (retrying in {next_delay}s): {err}{RESET}",
+                        file=sys.stderr,
+                    )
 
 
 def main() -> None:
     load_dotenv()
+
+    env_interval = os.environ.get("FITNESS_FIRST_POLL_INTERVAL")
+    default_interval = float(env_interval) if env_interval else 60.0
 
     parser = argparse.ArgumentParser(
         prog="fitness-first-tail",
@@ -459,8 +479,8 @@ def main() -> None:
     parser.add_argument(
         "-i", "--interval",
         type=float,
-        default=20.0,
-        help="Polling interval in seconds (default: 20s, minimum: 5s)",
+        default=default_interval,
+        help="Polling interval in seconds (default: 60s, or FITNESS_FIRST_POLL_INTERVAL; minimum: 5s)",
     )
     parser.add_argument(
         "--reset",

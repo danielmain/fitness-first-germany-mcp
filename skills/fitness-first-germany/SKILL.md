@@ -113,7 +113,7 @@ If the MCP server is configured and active in Hermes, the agent can call `ff_*` 
 ## Pitfalls
 
 - **Class IDs**: Netpulse class identifiers contain colons (e.g., `course:12345`). Always pass the full identifier string as returned by the classes query.
-- **Session Expiry**: Sessions expire after prolonged inactivity. The client automatically re-authenticates using stored credentials on session expiration.
+- **Session Expiry**: Sessions expire after prolonged inactivity and Netpulse returns `403: Access is denied` (or 401). The client automatically clears invalid cookies, re-authenticates using stored credentials, and retries the request transparently.
 - **Home Club Reassignment**: Updating profiles requires sending the existing `homeClub` UUID, which the client handles automatically.
 
 ## Verification

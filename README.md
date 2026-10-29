@@ -88,14 +88,14 @@ mcp_servers:
 Stream real-time workout completions and studio activity from members at your home club (with unmasked full names and avatar photos):
 
 ```bash
-# Continuous live tail (polls every 20s)
+# Continuous live tail (default: polls every 60s)
 python scripts/tail_members.py
 
 # Or via uv package script
 uv run fitness-first-tail
 
 # Options
-python scripts/tail_members.py -i 15         # Poll every 15 seconds
+python scripts/tail_members.py -i 120        # Poll every 120 seconds (or set FITNESS_FIRST_POLL_INTERVAL=120)
 python scripts/tail_members.py --reset       # Reset baseline snapshot
 python scripts/tail_members.py --once        # Single check and exit
 python scripts/tail_members.py --json        # Output newline-delimited JSON (ndjson)
@@ -105,6 +105,9 @@ python scripts/tail_members.py --mattermost-webhook "https://mattermost.funktion
 # Or with a Bot/Personal Token
 python scripts/tail_members.py --mattermost-token "YOUR_TOKEN"
 ```
+
+> [!NOTE]
+> Netpulse sessions expire periodically and return `403: Access is denied`. The client automatically re-authenticates and refreshes the session without interrupting the stream. If an API error persists, the tail monitor automatically applies exponential backoff (up to 5 minutes) instead of spamming retries.
 
 ## Available Tools
 

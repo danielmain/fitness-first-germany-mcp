@@ -351,3 +351,56 @@ def test_auth_config_save_and_load(tmp_path, monkeypatch):
     assert client.password == "my-password"
 
 
+def test_request_403_reauthenticates_and_retries():
+    import io
+    import urllib.error
+
+    calls = []
+
+    class ReauthOpener:
+        def open(self, request, timeout=30):
+            url = request.full_url
+            calls.append(url)
+            if url.endswith("/np/exerciser/login"):
+                return _Response({"uuid": "user-1", "homeClubUuid": "club-1", "timezone": "Europe/Berlin"})
+            if "/latest-check-in" in url:
+                # First time: simulate expired session returning 403 Access is denied
+                if len([c for c in calls if "/latest-check-in" in c]) == 1:
+                    raise urllib.error.HTTPError(
+                        url, 403, "Forbidden", {}, io.BytesIO(b'{"error": "Access is denied"}')
+                    )
+                return _Response({"checkInDate": "2026-10-29T12:00:00", "timezone": "Europe/Berlin"})
+            return _Response({})
+
+    client = FitnessFirstClient("user@example.com", "pass", opener=ReauthOpener())
+    client.login()
+    assert len([c for c in calls if c.endswith("/np/exerciser/login")]) == 1
+
+    res = client.latest_check_in()
+    assert res["date"] == "2026-10-29T12:00:00"
+    # Should have re-authenticated: login called twice
+    assert len([c for c in calls if c.endswith("/np/exerciser/login")]) == 2
+
+
+def test_request_403_permanent_failure_raises():
+    import io
+    import urllib.error
+
+    class Permanent403Opener:
+        def open(self, request, timeout=30):
+            url = request.full_url
+            if url.endswith("/np/exerciser/login"):
+                return _Response({"uuid": "user-1", "homeClubUuid": "club-1", "timezone": "Europe/Berlin"})
+            raise urllib.error.HTTPError(
+                url, 403, "Forbidden", {}, io.BytesIO(b'{"error": "Access is denied"}')
+            )
+
+    client = FitnessFirstClient("user@example.com", "pass", opener=Permanent403Opener())
+    client.login()
+
+    with pytest.raises(FitnessFirstError) as exc_info:
+        client.latest_check_in()
+    assert exc_info.value.status == 403
+
+
+
