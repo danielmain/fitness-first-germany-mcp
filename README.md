@@ -25,6 +25,29 @@ stdio entry point:
 uv run fitness-first-germany-mcp
 ```
 
+### Live Studio Activity Monitor (`tail -f`)
+
+Stream real-time workout completions and studio activity from members at your home club (with unmasked full names and avatar photos):
+
+```bash
+# Continuous live tail (polls every 20s)
+python scripts/tail_members.py
+
+# Or via uv package script
+uv run fitness-first-tail
+
+# Options
+python scripts/tail_members.py -i 15         # Poll every 15 seconds
+python scripts/tail_members.py --reset       # Reset baseline snapshot
+python scripts/tail_members.py --once        # Single check and exit
+python scripts/tail_members.py --json        # Output newline-delimited JSON (ndjson)
+
+# Forward live stream directly into Mattermost
+python scripts/tail_members.py --mattermost-webhook "https://mattermost.funktional.dev/hooks/YOUR_TOKEN"
+# Or with a Bot/Personal Token
+python scripts/tail_members.py --mattermost-token "YOUR_TOKEN"
+```
+
 ### MCP Client Config (Claude Desktop, Cursor, etc.)
 
 ```json
@@ -121,6 +144,8 @@ Now you can invoke `/fitness-first` or ask Hermes naturally about upcoming class
 | `ff_membership` | Membership type and contract dates |
 | `ff_leaderboard` | Club ranking of members with points, UUIDs, and CDN avatars. Optional `size` (1-100) and `next_page_token` |
 | `ff_ranking` | Signed-in member's personal rank, points, and total club members |
+| `ff_member_info` | Lookup public profile of a club member by UUID (resolves unmasked full name, club, and avatar) |
+| `ff_active_trainers` | Real-time detection of members actively training in your studio using leaderboard point deltas |
 | `ff_check_ins` | Gym visits / check-in history (date, club name, address). Optional `limit` (default 30) and `end_date` |
 | `ff_latest_check_in` | Most recent gym check-in timestamp and timezone |
 | `ff_activity_level` | EGYM activity level, points, days remaining in cycle, and maintenance points |
@@ -133,6 +158,16 @@ Now you can invoke `/fitness-first` or ask Hermes naturally about upcoming class
 `birthday` is `MM/DD/YYYY`. `measurement_unit` is `M` or `I`. `privacy` is `Public` or `Private`.
 
 Profile saves POST the whole profile to `/np/exerciser/{uuid}`. A partial body clears the home club, and the API then assigns a different club. Every save sends `homeClub` with the current UUID unless you pass `home_club_uuid`.
+
+## Real-Time Presence & Member Intelligence
+
+Fitness First does not expose a direct "who is in the gym right now" attendance endpoint, and individual check-in histories (`/check-ins/history`) for other members return `403 Forbidden`. However, near real-time presence detection is possible via **EGYM Leaderboard Point Deltas**:
+
+1. **Live Points Updating**: When members log workouts, use smart EGYM strength machines, or check into the gym, their points on `/analysis/api/v1.0/exercisers/{uuid}/ranking/leaderboard` update within minutes.
+2. **Snapshot Comparison (`ff_active_trainers`)**: The tool caches current leaderboard scores. When called again, any member whose points increased is identified as actively training in the studio.
+3. **Identity Resolution (`ff_member_info`)**: While the leaderboard only shows truncated names (`Felicia B.`), calling `/np/exercisers/{exerciser_id}/brief-info` unmasks the member's full first and last name (`Felicia Blessing`), home club, and direct high-resolution CDN profile picture.
+
+See [AGENTS.md](AGENTS.md) for full reverse-engineering notes and API route references.
 
 ## Tests
 

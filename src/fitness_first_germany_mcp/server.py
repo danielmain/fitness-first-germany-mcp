@@ -20,7 +20,8 @@ mcp = FastMCP(
     instructions=(
         "Fitness First Germany member tools: upcoming courses, your schedule, "
         "booking, waitlist, clubs, membership, check-ins, activity level, "
-        "body measurements, notifications, club leaderboard, and profile edits. "
+        "body measurements, notifications, club leaderboard, member lookup, "
+        "real-time active trainers detection, and profile edits. "
         "Write tools do nothing until confirm is true. "
         "Profile saves always resend the current home club. "
         "Use the class id and club_uuid returned by ff_upcoming_classes when booking. "
@@ -163,6 +164,30 @@ def ff_leaderboard(size: int = 50, next_page_token: str | None = None) -> dict[s
 def ff_ranking() -> dict[str, Any]:
     """Show the signed-in member's personal rank, points, and total club members."""
     return _run(lambda: get_client().ranking())
+
+
+@mcp.tool(annotations=READ)
+def ff_member_info(exerciser_id: str) -> dict[str, Any]:
+    """Get public details for a gym member by their exerciser UUID.
+
+    Returns the member's full first and last name, home club name/UUID,
+    nickname, and profile picture CDN URL.
+    exerciser_id: The member's UUID (from ff_leaderboard or ff_active_trainers).
+    """
+    return _run(lambda: get_client().member_info(exerciser_id))
+
+
+@mcp.tool(annotations=READ)
+def ff_active_trainers(limit: int = 50, reset_cache: bool = False) -> dict[str, Any]:
+    """Detect gym members currently training in your home studio in near real-time.
+
+    Compares current club leaderboard points against a local snapshot cache.
+    Members who gained points since the previous check have logged workouts or check-in activity.
+    Returns their full names, leaderboard display names, points gained, and profile photos.
+    limit: Max number of active trainers to return (default 50).
+    reset_cache: Reset baseline snapshot instead of comparing against previous check.
+    """
+    return _run(lambda: get_client().active_trainers(limit, reset_cache))
 
 
 @mcp.tool(annotations=READ)

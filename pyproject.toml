@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 fitness-first-germany-mcp = "fitness_first_germany_mcp:main"
+fitness-first-tail = "fitness_first_germany_mcp.tail:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0"]

@@ -194,6 +194,16 @@ class _Opener:
                     "vo2max": {"value": 42.0},
                 },
             })
+        if path.endswith("/brief-info"):
+            return _Response({
+                "uuid": "user-2",
+                "firstName": "Kristina",
+                "lastName": "Dittrich",
+                "homeGymLocationId": "club-1",
+                "homeGymLocationName": "Fellbach",
+                "nickname": "Krissi",
+                "imageUrl": "https://cdn.example.com/pic-hires.jpg",
+            })
         if path.endswith("/notifications"):
             return _Response({
                 "data": {
@@ -280,3 +290,43 @@ def test_client_notifications():
     notifs = client.notifications()
     assert notifs["count"] == 1
     assert notifs["notifications"][0]["text"] == "Gym closed on Sunday"
+
+
+def test_client_member_info_and_active_trainers(tmp_path):
+    opener = _Opener()
+    client = FitnessFirstClient("ada@example.com", "secret", opener=opener)
+
+    info = client.member_info("user-2")
+    assert info["first_name"] == "Kristina"
+    assert info["last_name"] == "Dittrich"
+    assert info["full_name"] == "Kristina Dittrich"
+    assert info["home_club_name"] == "Fellbach"
+    assert info["avatar_url"] == "https://cdn.example.com/pic-hires.jpg"
+
+    cache_file = str(tmp_path / "snapshot.json")
+
+    # First run: sets baseline snapshot
+    first_run = client.active_trainers(cache_path=cache_file)
+    assert first_run["active_count"] == 0
+    assert first_run["snapshot_saved"] is True
+    assert "Initial snapshot" in first_run["message"]
+
+    # Simulate leaderboard score increase: user-2 went from 100 -> 250 (+150 pts)
+    with open(cache_file, "r") as f:
+        data = json.load(f)
+    data["scores"]["user-2"] = 100  # old score was 100
+    # In opener, user-2 currently has 100 points. Let's make old score 50:
+    data["scores"]["user-2"] = 50
+    with open(cache_file, "w") as f:
+        json.dump(data, f)
+
+    second_run = client.active_trainers(cache_path=cache_file)
+    assert second_run["active_count"] == 1
+    trainer = second_run["active_trainers"][0]
+    assert trainer["exerciser_id"] == "user-2"
+    assert trainer["name"] == "Kristina Dittrich"
+    assert trainer["points_gained"] == 50
+    assert trainer["current_points"] == 100
+    assert trainer["previous_points"] == 50
+    assert trainer["avatar_url"] == "https://cdn.example.com/pic-hires.jpg"
+

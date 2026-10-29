@@ -448,6 +448,126 @@ class FitnessFirstClient:
             "avatar_url": body.get("exerciserIconUrl") or None,
         }
 
+    def member_info(self, exerciser_id: str) -> dict[str, Any]:
+        """Look up public/club details of another member by exerciser UUID."""
+        if not exerciser_id:
+            raise FitnessFirstError("exerciser_id is required.")
+        body = self._request("GET", f"/np/exercisers/{_path(exerciser_id)}/brief-info")
+        if not isinstance(body, dict):
+            raise FitnessFirstError("Member brief-info response was not an object.")
+        first = body.get("firstName") or ""
+        last = body.get("lastName") or ""
+        full = f"{first} {last}".strip() or None
+        return {
+            "exerciser_id": body.get("uuid") or exerciser_id,
+            "first_name": body.get("firstName") or None,
+            "last_name": body.get("lastName") or None,
+            "full_name": full,
+            "home_club_uuid": body.get("homeGymLocationId"),
+            "home_club_name": body.get("homeGymLocationName"),
+            "nickname": body.get("nickname"),
+            "avatar_url": body.get("imageUrl"),
+        }
+
+    def active_trainers(
+        self,
+        limit: int = 50,
+        reset_cache: bool = False,
+        cache_path: str | None = None,
+    ) -> dict[str, Any]:
+        """Detect club members who are currently training in the studio.
+
+        Compares current leaderboard points against the previously saved snapshot.
+        Members whose points increased since the last check have logged workouts
+        or check-in activity. Their full names and profile photos are resolved via brief-info.
+        """
+        clamped_limit = max(1, min(limit, 100))
+        now_dt = datetime.now(_zone(self.timezone))
+        now_iso = now_dt.isoformat(timespec="seconds")
+
+        cache_file = cache_path or os.environ.get("FITNESS_FIRST_CACHE_PATH")
+        if not cache_file:
+            cache_dir = os.path.expanduser("~/.cache/fitness_first_germany")
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_file = os.path.join(cache_dir, f"leaderboard_snapshot_{self.home_club_uuid}.json")
+
+        previous_snapshot: dict[str, Any] = {}
+        if not reset_cache and os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    previous_snapshot = json.load(f)
+            except Exception:
+                previous_snapshot = {}
+
+        prev_scores: dict[str, int] = previous_snapshot.get("scores") or {}
+        prev_time: str | None = previous_snapshot.get("timestamp")
+
+        lb = self.leaderboard(size=100)
+        items = lb.get("items") or []
+
+        current_scores: dict[str, int] = {}
+        active_list: list[dict[str, Any]] = []
+
+        for item in items:
+            uid = item.get("exerciser_id")
+            pts = item.get("points")
+            if not uid or not isinstance(pts, int):
+                continue
+            current_scores[uid] = pts
+
+            if prev_scores and uid in prev_scores:
+                old_pts = prev_scores[uid]
+                delta = pts - old_pts
+                if delta > 0:
+                    full_name = item.get("name")
+                    avatar = item.get("avatar_url")
+                    try:
+                        info = self.member_info(uid)
+                        if info.get("full_name"):
+                            full_name = info["full_name"]
+                        if info.get("avatar_url"):
+                            avatar = info["avatar_url"]
+                    except Exception:
+                        pass
+
+                    active_list.append({
+                        "exerciser_id": uid,
+                        "name": full_name,
+                        "leaderboard_name": item.get("name"),
+                        "points_gained": delta,
+                        "current_points": pts,
+                        "previous_points": old_pts,
+                        "avatar_url": avatar,
+                    })
+
+        active_list.sort(key=lambda row: row.get("points_gained") or 0, reverse=True)
+
+        try:
+            cache_dir = os.path.dirname(cache_file)
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump({
+                    "timestamp": now_iso,
+                    "club_uuid": self.home_club_uuid,
+                    "scores": current_scores,
+                }, f, indent=2)
+        except Exception:
+            pass
+
+        msg = None
+        if not prev_scores:
+            msg = "Initial snapshot created. Run again later to detect members who gained points while training."
+
+        return {
+            "last_checked": prev_time,
+            "current_check": now_iso,
+            "active_count": len(active_list),
+            "active_trainers": active_list[:clamped_limit],
+            "snapshot_saved": True,
+            "message": msg,
+        }
+
     def check_ins(self, limit: int = 30, end_date: str | None = None) -> dict[str, Any]:
         clamped_limit = max(1, min(limit, 100))
         if not end_date:

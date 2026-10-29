@@ -97,6 +97,8 @@ You can also run the bundled interactive setup script:
 | `ff_membership` | Membership type and contract start/end dates |
 | `ff_leaderboard` | Club member rankings with points, UUIDs, and avatars |
 | `ff_ranking` | Personal member ranking and club totals |
+| `ff_member_info` | Lookup full name, home club, and CDN avatar for an exerciser UUID |
+| `ff_active_trainers` | Real-time detection of members currently training based on leaderboard point deltas |
 | `ff_check_ins` | Gym visits / check-in history (dates, club names, addresses) |
 | `ff_latest_check_in` | Most recent gym check-in timestamp and timezone |
 | `ff_activity_level` | EGYM activity points, tier, and days left in cycle |
@@ -133,6 +135,10 @@ You can also run the bundled interactive setup script:
 - `birthday` format is `MM/DD/YYYY`.
 - `measurement_unit` is `M` (metric) or `I` (imperial).
 - Saving profile sends the entire payload to the Netpulse API. The tool automatically preserves `homeClub` UUID to prevent accidental club resets.
+
+### 6. Live Activity Stream & Mattermost Notifications
+- Run `python scripts/tail_members.py` or `uv run fitness-first-tail` to monitor members training in real time.
+- The stream can forward live updates to Mattermost via `--mattermost-webhook` or `MATTERMOST_WEBHOOK_URL`.
 
 ---
 

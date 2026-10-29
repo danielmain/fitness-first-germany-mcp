@@ -41,6 +41,14 @@ class _FakeClient:
         self.calls.append(("notifications",))
         return {"count": 0, "notifications": []}
 
+    def member_info(self, exerciser_id):
+        self.calls.append(("member_info", exerciser_id))
+        return {"exerciser_id": exerciser_id, "full_name": "Ada Lovelace"}
+
+    def active_trainers(self, limit=50, reset_cache=False):
+        self.calls.append(("active_trainers", limit, reset_cache))
+        return {"active_count": 1, "active_trainers": []}
+
 
 def test_book_does_not_call_the_api_without_confirm():
     fake = _FakeClient()
@@ -109,3 +117,16 @@ def test_health_and_activity_tools_forward_to_client():
     notifs = server.ff_notifications()
     assert notifs["count"] == 0
     assert fake.calls[-1] == ("notifications",)
+
+
+def test_member_info_and_active_trainers_forward_to_client():
+    fake = _FakeClient()
+    server.set_client(fake)
+
+    info = server.ff_member_info("user-123")
+    assert info["full_name"] == "Ada Lovelace"
+    assert fake.calls[-1] == ("member_info", "user-123")
+
+    act = server.ff_active_trainers(limit=20, reset_cache=True)
+    assert act["active_count"] == 1
+    assert fake.calls[-1] == ("active_trainers", 20, True)
