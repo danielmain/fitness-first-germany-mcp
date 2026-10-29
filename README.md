@@ -4,26 +4,84 @@
 
 # Fitness First Germany MCP & Hermes Skill
 
-MCP server for a Fitness First Germany membership on the Netpulse brand API (`https://fitnessfirst.netpulse.com`).
+MCP server and Hermes Agent skill for your Fitness First Germany membership powered by the Netpulse brand API (`https://fitnessfirst.netpulse.com`).
 
-It can list upcoming courses, show your bookings, book and cancel, join or leave a waitlist, search clubs, view the club leaderboard and member rankings, track gym check-ins, view activity levels, read EGYM body measurements / BioAge, check announcements, and edit your profile. Write tools do nothing until `confirm` is true.
+It can list upcoming courses, show your bookings, book and cancel classes, join or leave waitlists, search clubs, view the club leaderboard and member rankings, track gym check-ins, view activity levels, read EGYM body measurements / BioAge, check announcements, and monitor live studio workouts.
 
-Sign-in is `POST /np/exerciser/login` on the Fitness First host. `https://api.netpulse.com/np/login` does not see this membership. The server keeps the `JSESSIONID` cookie and signs in again if a call returns 401.
+---
 
-## Setup
+## Installation & Quick Start
+
+You can use Fitness First Germany either as a **Hermes Agent Skill** (one-liner install with conversational zero-CLI onboarding) or as a **Model Context Protocol (MCP) Server** (Claude Desktop, Cursor, Antigravity).
+
+### Option 1: Install as a Hermes Agent Skill (Recommended)
+
+Install the skill directly into Hermes from GitHub:
+
+```bash
+hermes skills install danielmain/fitness-first-germany-mcp/skills/fitness-first-germany
+```
+
+#### Zero-CLI Conversational Setup
+Once installed, no config editing or terminal commands are needed:
+1. Start chatting with Hermes: *"Show me upcoming spinning classes tomorrow"*
+2. If unauthenticated, Hermes will ask conversationally for your Fitness First account email and password directly in the chat.
+3. Hermes tests your credentials against the API and saves them securely to `~/.config/fitness-first-germany/auth.json` (chmod 600).
+4. That's it! You can now manage bookings, inspect BioAge stats, and track visits conversationally.
+
+---
+
+### Option 2: Run as an MCP Server (Claude Desktop, Cursor, Antigravity)
+
+#### Local Setup & Dependencies
 
 ```bash
 cd fitness-first-germany-mcp
 cp .env.example .env
-# edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
+# Edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
 uv sync
 ```
 
-stdio entry point:
+#### MCP Client Configuration
 
+Add to your MCP client config (`claude_desktop_config.json`, Cursor MCP settings, or `~/.gemini/config/mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "fitness-first-germany": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"],
+      "env": {
+        "FITNESS_FIRST_EMAIL": "you@example.com",
+        "FITNESS_FIRST_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+Or run directly via stdio:
 ```bash
 uv run fitness-first-germany-mcp
 ```
+
+#### Running as an MCP Server in Hermes Agent
+
+If you prefer native tool calling over MCP inside Hermes instead of the standalone skill:
+
+```yaml
+# Add to ~/.hermes/config.yaml
+mcp_servers:
+  fitness-first-germany:
+    command: "uv"
+    args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
+    env:
+      FITNESS_FIRST_EMAIL: "you@example.com"
+      FITNESS_FIRST_PASSWORD: "your-password"
+```
+
+---
 
 ### Live Studio Activity Monitor (`tail -f`)
 
@@ -48,88 +106,7 @@ python scripts/tail_members.py --mattermost-webhook "https://mattermost.funktion
 python scripts/tail_members.py --mattermost-token "YOUR_TOKEN"
 ```
 
-### MCP Client Config (Claude Desktop, Cursor, etc.)
-
-```json
-{
-  "mcpServers": {
-    "fitness-first-germany": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"],
-      "env": {
-        "FITNESS_FIRST_EMAIL": "you@example.com",
-        "FITNESS_FIRST_PASSWORD": "your-password"
-      }
-    }
-  }
-}
-```
-
-### Hermes Agent Setup
-
-This repository works natively with [Hermes Agent](https://hermes-agent.nousresearch.com) both as an MCP server and as a procedural skill ([`agentskills.io`](https://agentskills.io) format).
-
-#### 1. Link or install the Skill
-
-Link the bundled skill to your Hermes skills directory:
-
-```bash
-mkdir -p ~/.hermes/skills
-ln -s "$(pwd)/skills/fitness-first-germany" ~/.hermes/skills/fitness-first-germany
-```
-
-*(Alternatively, add this repository's `skills/` path to `skills.external_dirs` in `~/.hermes/config.yaml`)*.
-
-#### 2. Choose how to configure your credentials
-
-You have three options to provide your Fitness First credentials:
-
-- **Option A: Via Hermes CLI (Recommended)**
-  Hermes automatically saves `UPPER_SNAKE_CASE` environment variables into `~/.hermes/.env`:
-  ```bash
-  hermes config set FITNESS_FIRST_EMAIL "you@example.com"
-  hermes config set FITNESS_FIRST_PASSWORD "your-password"
-  ```
-  Then in `~/.hermes/config.yaml`, reference them using `${VAR}`:
-  ```yaml
-  mcp_servers:
-    fitness-first-germany:
-      command: "uv"
-      args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
-      env:
-        FITNESS_FIRST_EMAIL: ${FITNESS_FIRST_EMAIL}
-        FITNESS_FIRST_PASSWORD: ${FITNESS_FIRST_PASSWORD}
-  ```
-
-- **Option B: Directly in `~/.hermes/config.yaml`**
-  ```yaml
-  mcp_servers:
-    fitness-first-germany:
-      command: "uv"
-      args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
-      env:
-        FITNESS_FIRST_EMAIL: "you@example.com"
-        FITNESS_FIRST_PASSWORD: "your-password"
-  ```
-
-- **Option C: In the local repository `.env`**
-  Create `.env` in the repository root:
-  ```bash
-  cp .env.example .env
-  # edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
-  ```
-  The server loads `.env` automatically via `python-dotenv` when launched.
-
-#### Quick Setup Script
-
-You can also run the interactive setup helper:
-```bash
-./skills/fitness-first-germany/scripts/setup.sh
-```
-
-Now you can invoke `/fitness-first` or ask Hermes naturally about upcoming classes, check-ins, or EGYM BioAge metrics.
-
-## Tools
+## Available Tools
 
 | Tool | What it does |
 | --- | --- |

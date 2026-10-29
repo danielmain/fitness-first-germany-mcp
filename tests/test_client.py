@@ -5,8 +5,10 @@ import pytest
 from fitness_first_germany_mcp.client import (
     FitnessFirstClient,
     FitnessFirstError,
+    load_auth_config,
     profile_form,
     public_profile,
+    save_auth_config,
     summarize_classes,
 )
 
@@ -329,4 +331,23 @@ def test_client_member_info_and_active_trainers(tmp_path):
     assert trainer["current_points"] == 100
     assert trainer["previous_points"] == 50
     assert trainer["avatar_url"] == "https://cdn.example.com/pic-hires.jpg"
+
+
+def test_auth_config_save_and_load(tmp_path, monkeypatch):
+    dummy_auth = tmp_path / "auth.json"
+    monkeypatch.setattr("fitness_first_germany_mcp.client.get_auth_file_path", lambda: dummy_auth)
+
+    assert load_auth_config() == {}
+    save_auth_config("user@example.com", "my-password")
+    loaded = load_auth_config()
+    assert loaded["email"] == "user@example.com"
+    assert loaded["password"] == "my-password"
+
+    # Test from_env fallback
+    monkeypatch.delenv("FITNESS_FIRST_EMAIL", raising=False)
+    monkeypatch.delenv("FITNESS_FIRST_PASSWORD", raising=False)
+    client = FitnessFirstClient.from_env()
+    assert client.email == "user@example.com"
+    assert client.password == "my-password"
+
 

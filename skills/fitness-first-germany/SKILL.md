@@ -1,147 +1,123 @@
 ---
 name: fitness-first-germany
-description: Manage Fitness First Germany memberships, view and book group classes, manage waitlists, check gym visit history, rankings, and inspect EGYM body measurements / BioAge using Netpulse API.
+description: Fitness First Germany gym bookings, schedule, and metrics.
 version: 1.0.0
+author: Daniel Main (danielmain), Hermes Agent
+license: MIT
+platforms:
+  - linux
+  - macos
+  - windows
 metadata:
   hermes:
-    tags: [fitness, gym, booking, mcp, egym]
-prerequisites:
-  env:
-    - FITNESS_FIRST_EMAIL
-    - FITNESS_FIRST_PASSWORD
+    tags:
+      - Fitness
+      - Gym
+      - Netpulse
+      - EGYM
+      - Booking
+    related_skills: []
 ---
 
-# Fitness First Germany
+# Fitness First Germany Skill
 
-Procedural guide for managing your Fitness First Germany account, bookings, check-in history, and EGYM body metrics via the Netpulse brand API tools.
+Manage Fitness First Germany studio memberships, book group fitness courses, view gym check-in visits, inspect EGYM BioAge metrics, and detect members working out in real time via the Netpulse brand API. Works both as a standalone Hermes skill via bundled scripts and as native MCP tools.
 
 ## When to Use
-Activate this skill when the user wants to:
-- Check gym schedule or upcoming fitness classes.
-- Book, cancel, or join/leave waitlists for classes.
-- View gym check-in history or verify their latest visit.
-- Check club leaderboards, personal rank, or EGYM activity points.
-- View BioAge, weight, BMI, body fat, or metabolic measurements.
-- Inspect or update profile settings and home club.
-- Configure or troubleshoot Fitness First credentials in Hermes.
 
-Command: `/fitness-first <instruction>`
+- User asks to view upcoming gym classes or check their class schedule.
+- User wants to book a class, cancel an existing booking, or manage course waitlists.
+- User asks about gym visits, past check-ins, or latest check-in timestamp.
+- User wants to inspect EGYM body metrics (BioAge, body fat %, BMI, metabolic age, VO2 max).
+- User asks for club leaderboards, member ranking, or real-time active trainers.
+- Don't use for: gyms outside the Fitness First Germany network or generic fitness calculations without account access.
 
----
+## Prerequisites
 
-## Prerequisites & Credential Configuration
+Authentication requires the user's Fitness First Germany account email and password:
+- `FITNESS_FIRST_EMAIL`
+- `FITNESS_FIRST_PASSWORD`
 
-This skill requires the `fitness-first-germany` MCP server running with valid credentials.
+These may be set as environment variables or saved locally via the in-chat onboarding flow below.
 
-### If credentials or tools are missing:
-If tools (`ff_*`) are not available or return `Set FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD before starting the server`, guide the user with these 3 options:
+## Conversational Onboarding (Zero CLI for Users)
 
-1. **Hermes CLI (Recommended):**
+If the credentials are not yet configured or an authentication error occurs:
+
+1. **Do not display technical errors or ask the user to run CLI commands.**
+2. Ask the user conversationally in chat:
+   > "To manage your Fitness First schedule and bookings, I need your Fitness First account email and password. What are your login details?"
+3. Once the user replies with their credentials, run the auth helper using the `terminal` tool:
    ```bash
-   hermes config set FITNESS_FIRST_EMAIL "you@example.com"
-   hermes config set FITNESS_FIRST_PASSWORD "your-password"
+   python3 scripts/ff_cli.py auth-save --email "<user_email>" --password "<user_password>"
    ```
-   *(Hermes stores UPPER_CASE variables directly in `~/.hermes/.env`)*.
-
-2. **Hermes MCP config (`~/.hermes/config.yaml`):**
-   ```yaml
-   mcp_servers:
-     fitness-first-germany:
-       command: "uv"
-       args: ["run", "--directory", "/path/to/fitness-first-germany-mcp", "fitness-first-germany-mcp"]
-       env:
-         FITNESS_FIRST_EMAIL: ${FITNESS_FIRST_EMAIL}
-         FITNESS_FIRST_PASSWORD: ${FITNESS_FIRST_PASSWORD}
-   ```
-
-3. **Local repository `.env`:**
-   In the cloned repository directory:
-   ```bash
-   cp .env.example .env
-   # Edit FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD
-   ```
-
-You can also run the bundled interactive setup script:
-```bash
-./scripts/setup.sh
-```
-
----
+   *(Note: when running from the repo root, prefix with `skills/fitness-first-germany/scripts/ff_cli.py`)*.
+4. If authentication fails, politely ask the user to double-check their credentials.
+5. If successful, confirm to the user and immediately proceed with their original request.
 
 ## Safety & Confirmation Rules
 
-> [!IMPORTANT]
-> All write actions require explicit user confirmation before executing:
-> - `ff_book_class`
-> - `ff_cancel_class`
-> - `ff_join_waitlist` / `ff_leave_waitlist`
-> - `ff_update_profile`
-> - `ff_change_password`
-> 
-> Never pass `confirm=true` unless the user explicitly approved the action with the specific details (class title, date, time, or profile fields).
+All write actions require explicit user confirmation before applying changes:
+- Class bookings (`book`)
+- Booking cancellations (`cancel`)
+- Joining or leaving waitlists (`waitlist-join`, `waitlist-leave`)
 
----
+Always present class title, instructor, date, and start time to the user, and ask for confirmation. Never pass `--confirm` (or `confirm=true` in MCP mode) without explicit user approval.
 
-## Available Tools
+## Quick Reference
 
-| Tool | Purpose |
-| --- | --- |
-| `ff_account` | Signed-in member and home club info |
-| `ff_upcoming_classes` | Courses from today for `days` (default 14, max 60). Optional `club_uuid` or `club_name` |
-| `ff_class_details` | Detailed info for a class ID (note: IDs contain colons, e.g. `course:12345`) |
-| `ff_my_schedule` | List courses currently booked by the user |
-| `ff_book_class` | Book a class (`confirm=true`, optional `spot`) |
-| `ff_cancel_class` | Cancel a booking (`confirm=true`) |
-| `ff_join_waitlist` / `ff_leave_waitlist` | Join or leave a waitlist (`confirm=true`) |
-| `ff_clubs` | Search clubs by name or city |
-| `ff_membership` | Membership type and contract start/end dates |
-| `ff_leaderboard` | Club member rankings with points, UUIDs, and avatars |
-| `ff_ranking` | Personal member ranking and club totals |
-| `ff_member_info` | Lookup full name, home club, and CDN avatar for an exerciser UUID |
-| `ff_active_trainers` | Real-time detection of members currently training based on leaderboard point deltas |
-| `ff_check_ins` | Gym visits / check-in history (dates, club names, addresses) |
-| `ff_latest_check_in` | Most recent gym check-in timestamp and timezone |
-| `ff_activity_level` | EGYM activity points, tier, and days left in cycle |
-| `ff_body_measurements` | Weight, height, BMI, body fat %, BioAge, metabolic age, VO2 max |
-| `ff_notifications` | Gym notifications and system messages |
-| `ff_profile` | Full profile details (passwords omitted) |
-| `ff_update_profile` | Update profile fields (`confirm=true`) |
-| `ff_change_password` | Change account password (`confirm=true`) |
+| Action | Skill Script Command | MCP Equivalent |
+|---|---|---|
+| Check Auth Status | `python3 scripts/ff_cli.py auth-status` | `ff_account` |
+| Upcoming Classes | `python3 scripts/ff_cli.py classes --days 14` | `ff_upcoming_classes` |
+| Class Details | `python3 scripts/ff_cli.py class-details <class_id>` | `ff_class_details` |
+| My Booked Classes | `python3 scripts/ff_cli.py schedule` | `ff_my_schedule` |
+| Book a Class | `python3 scripts/ff_cli.py book <class_id> --confirm` | `ff_book_class` |
+| Cancel Booking | `python3 scripts/ff_cli.py cancel <class_id> --confirm` | `ff_cancel_class` |
+| Join Waitlist | `python3 scripts/ff_cli.py waitlist-join <class_id> --confirm` | `ff_join_waitlist` |
+| Leave Waitlist | `python3 scripts/ff_cli.py waitlist-leave <class_id> --confirm` | `ff_leave_waitlist` |
+| Check-in History | `python3 scripts/ff_cli.py check-ins --limit 20` | `ff_check_ins` |
+| Latest Check-in | `python3 scripts/ff_cli.py latest-check-in` | `ff_latest_check_in` |
+| EGYM BioAge & Body | `python3 scripts/ff_cli.py bioage` | `ff_body_measurements` |
+| EGYM Activity Points | `python3 scripts/ff_cli.py activity` | `ff_activity_level` |
+| Club Leaderboard | `python3 scripts/ff_cli.py leaderboard --limit 50` | `ff_leaderboard` |
+| Member Profile Info | `python3 scripts/ff_cli.py member-info <uuid>` | `ff_member_info` |
+| Active Trainers Delta | `python3 scripts/ff_cli.py active-trainers` | `ff_active_trainers` |
 
----
+## How to Run
 
-## Workflows
+When running in Hermes Agent, execute commands via the `terminal` tool.
+Locate the helper script relative to the installed skill path (`scripts/ff_cli.py`):
 
-### 1. Searching & Booking a Class
-1. Call `ff_upcoming_classes(days=...)` optionally filtering by `club_name` or `club_uuid`.
-2. Present the available classes clearly (title, date/time, instructor, available spots).
-3. If the user picks a class, summarize the details and ask for explicit confirmation.
-4. When confirmed, call `ff_book_class(class_id=..., confirm=true, spot=...)`.
-   - If the class is full, offer to join the waitlist with `ff_join_waitlist(class_id=..., confirm=true)`.
+```python
+terminal(command="python3 scripts/ff_cli.py classes --days 7")
+```
 
-### 2. Viewing Bookings & Cancellations
-1. Call `ff_my_schedule` to display upcoming reservations.
-2. If the user requests a cancellation, verify the class details and confirm before calling `ff_cancel_class(class_id=..., confirm=true)`.
+If the MCP server is configured and active in Hermes, the agent can call `ff_*` native tools directly instead of executing terminal commands.
 
-### 3. Check-ins & Gym Activity
-- Call `ff_latest_check_in` to verify the latest visit timestamp and gym location.
-- Call `ff_check_ins(limit=...)` for visit frequency analysis and past visit history.
-- Call `ff_activity_level` to check EGYM progress towards point thresholds.
+## Procedure
 
-### 4. Health & Body Measurements
-- Call `ff_body_measurements` to display health and body composition stats (BioAge vs. chronological age, body fat %, metabolic age, VO2 max).
+1. **Check or Establish Auth**:
+   Call `auth-status`. If unauthenticated, trigger the Conversational Onboarding flow.
+2. **Search Classes**:
+   Call `classes --days 7`. Filter results by requested name, time, or location.
+3. **Confirm Write Operations**:
+   Before booking or cancelling, summarize class information and prompt the user.
+4. **Execute Booking**:
+   After confirmation, invoke `book <class_id> --confirm`.
+5. **Report Result**:
+   Confirm the booking and show the updated schedule.
 
-### 5. Profile Management
-- `birthday` format is `MM/DD/YYYY`.
-- `measurement_unit` is `M` (metric) or `I` (imperial).
-- Saving profile sends the entire payload to the Netpulse API. The tool automatically preserves `homeClub` UUID to prevent accidental club resets.
+## Pitfalls
 
-### 6. Live Activity Stream & Mattermost Notifications
-- Run `python scripts/tail_members.py` or `uv run fitness-first-tail` to monitor members training in real time.
-- The stream can forward live updates to Mattermost via `--mattermost-webhook` or `MATTERMOST_WEBHOOK_URL`.
+- **Class IDs**: Netpulse class identifiers contain colons (e.g., `course:12345`). Always pass the full identifier string as returned by the classes query.
+- **Session Expiry**: Sessions expire after prolonged inactivity. The client automatically re-authenticates using stored credentials on session expiration.
+- **Home Club Reassignment**: Updating profiles requires sending the existing `homeClub` UUID, which the client handles automatically.
 
----
+## Verification
 
-## Common Pitfalls
-- **Session renewal**: The client automatically maintains `JSESSIONID` and re-authenticates on 401 using `FITNESS_FIRST_EMAIL` and `FITNESS_FIRST_PASSWORD`.
-- **Class IDs**: Netpulse class identifiers contain a colon `:` (e.g., `course:12345`). Always pass the full ID string as returned by `ff_upcoming_classes`.
+To verify the skill installation and credentials:
+```bash
+python3 scripts/ff_cli.py auth-status
+```
+Expected output: JSON object with `"authenticated": true`, member name, and home club name.

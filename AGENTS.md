@@ -130,3 +130,20 @@ The CLI tool `scripts/tail_members.py` (or `uv run fitness-first-tail`) streams 
 - Terminal styling with ANSI colors and formatted metadata cards.
 - Optional newline-delimited JSON (`--json`) output.
 - Mattermost incoming webhook (`--mattermost-webhook` / `MATTERMOST_WEBHOOK_URL`) or REST API token forwarding with two-column attachments and CDN avatars.
+
+---
+
+## 5. Hermes Agent Skill Architecture
+
+This repository is dual-packaged as an MCP server and a standalone Hermes Skill conforming to Nous Research Hermes standards.
+
+### Hub Installation
+```bash
+hermes skills install danielmain/fitness-first-germany-mcp/skills/fitness-first-germany
+```
+
+### Self-Contained Execution & Security Compliance
+- **Zero-Dependency CLI**: The skill bundles `skills/fitness-first-germany/scripts/ff_cli.py` and `client.py`, using standard Python libraries with no external packages required.
+- **Skills Guard Clean**: Strictly adheres to Hermes `skills_guard` security patterns, passing with `Verdict: safe` (no raw secret file accesses or unauthorized path traversals).
+- **Conversational Onboarding**: When credentials are missing, Hermes prompts the user conversationally in chat and saves them securely to `~/.config/fitness-first-germany/auth.json` (chmod 600).
+- **Dual Support**: Works seamlessly via Hermes `terminal` tool without requiring an MCP server process, or as an MCP server via FastMCP tool calling.

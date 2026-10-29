@@ -10,11 +10,37 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 from http.cookiejar import CookieJar
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 DEFAULT_BASE_URL = "https://fitnessfirst.netpulse.com"
 DEFAULT_TIMEZONE = "Europe/Berlin"
+
+
+def get_auth_file_path() -> Path:
+    return Path.home() / ".config" / "fitness-first-germany" / "auth.json"
+
+
+def load_auth_config() -> dict[str, str]:
+    path = get_auth_file_path()
+    if path.is_file():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_auth_config(email: str, password: str, base_url: str = DEFAULT_BASE_URL) -> None:
+    path = get_auth_file_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"email": email.strip(), "password": password, "base_url": base_url}
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
 
 # Returned by GET /profile. Never send these back, and never show the secrets.
 _HIDDEN_PROFILE_KEYS = ("clientLoginPasscode", "picturePassword", "clientLoginId")
@@ -233,11 +259,16 @@ class FitnessFirstClient:
     def from_env(cls) -> FitnessFirstClient:
         email = os.environ.get("FITNESS_FIRST_EMAIL", "").strip()
         password = os.environ.get("FITNESS_FIRST_PASSWORD", "")
+        base = os.environ.get("FITNESS_FIRST_BASE_URL", "").strip()
+        if not email or not password:
+            stored = load_auth_config()
+            email = email or stored.get("email", "").strip()
+            password = password or stored.get("password", "")
+            base = base or stored.get("base_url", "").strip()
         if not email or not password:
             raise FitnessFirstError(
                 "Set FITNESS_FIRST_EMAIL and FITNESS_FIRST_PASSWORD before starting the server."
             )
-        base = os.environ.get("FITNESS_FIRST_BASE_URL", DEFAULT_BASE_URL).strip()
         return cls(email, password, base or DEFAULT_BASE_URL)
 
     @property
