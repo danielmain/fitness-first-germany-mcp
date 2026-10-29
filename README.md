@@ -142,7 +142,7 @@ Fitness First does not expose a direct "who is in the gym right now" attendance 
 
 1. **Live Points Updating**: When members log workouts, use smart EGYM strength machines, or check into the gym, their points on `/analysis/api/v1.0/exercisers/{uuid}/ranking/leaderboard` update within minutes.
 2. **Snapshot Comparison (`ff_active_trainers`)**: The tool caches current leaderboard scores. When called again, any member whose points increased is identified as actively training in the studio.
-3. **Identity Resolution (`ff_member_info`)**: While the leaderboard only shows truncated names (`Felicia B.`), calling `/np/exercisers/{exerciser_id}/brief-info` unmasks the member's full first and last name (`Felicia Blessing`), home club, and direct high-resolution CDN profile picture.
+3. **Identity Resolution (`ff_member_info`)**: While the leaderboard only shows truncated names (`Alex M.`), calling `/np/exercisers/{exerciser_id}/brief-info` unmasks the member's full first and last name (`Alex Mustermann`), home club, and direct high-resolution CDN profile picture.
 
 See [AGENTS.md](AGENTS.md) for full reverse-engineering notes and API route references.
 

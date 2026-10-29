@@ -70,22 +70,22 @@ The Fitness First Germany mobile app (`com.netpulse.mobile.fitnessfirst`) is pow
 1. The studio leaderboard endpoint (`/analysis/api/v1.0/exercisers/{own_uuid}/ranking/leaderboard`) exposes the monthly ranking of all club members. By default, it masks last names:
    ```json
    {
-     "exerciserId": "0da227c5-d6d4-468e-8f9e-07da4923fafa",
-     "exerciserName": "Felicia B.",
+     "exerciserId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+     "exerciserName": "Alex M.",
      "points": 29340,
-     "exerciserIconUrl": "https://galaxy.cdn.egym.com/avatar-scaled/0da227c5-d6d4-468e-8f9e-07da4923fafa.jpg"
+     "exerciserIconUrl": "https://galaxy.cdn.egym.com/avatar-scaled/a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d.jpg"
    }
    ```
 2. Calling the undocumented `/np/exercisers/{exerciser_id}/brief-info` endpoint with the member's UUID returns their **unmasked full name** and high-resolution CDN profile photo:
    ```json
    {
-     "uuid": "0da227c5-d6d4-468e-8f9e-07da4923fafa",
-     "firstName": "Felicia",
-     "lastName": "Blessing",
-     "homeGymLocationId": "a06e658c-a5f1-43b4-ab13-7a57295d83c9",
-     "homeGymLocationName": "Stuttgart – Bad Cannstatt",
+     "uuid": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+     "firstName": "Alex",
+     "lastName": "Mustermann",
+     "homeGymLocationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+     "homeGymLocationName": "Frankfurt – MyZeil",
      "nickname": null,
-     "imageUrl": "https://galaxy.cdn.egym.com/avatar-scaled/0da227c5-d6d4-468e-8f9e-07da4923fafa.jpg"
+     "imageUrl": "https://galaxy.cdn.egym.com/avatar-scaled/a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d.jpg"
    }
    ```
 
